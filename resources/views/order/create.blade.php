@@ -26,17 +26,24 @@
                 </select>
             </p>
 
-            <p>
-                <label>Đại lý <span style="color:red">*</span></label><br>
-                <select name="agency_id">
-                    <option value="">-- Chọn --</option>
-                    @foreach ($agencies as $agency)
-                        <option value="{{ $agency->id }}" {{ (string) old('agency_id') === (string) $agency->id ? 'selected' : '' }}>
-                            {{ $agency->name }} ({{ $agency->code }})
-                        </option>
-                    @endforeach
-                </select>
-            </p>
+            {{-- Đại lý: ẩn nếu AGENCY (tự điền) --}}
+            @if (auth()->user()->isAdmin())
+                <p>
+                    <label>Đại lý <span style="color:red">*</span></label><br>
+                    <select name="agency_id">
+                        <option value="">-- Chọn --</option>
+                        @foreach ($agencies as $agency)
+                            <option value="{{ $agency->id }}" {{ (string) old('agency_id') === (string) $agency->id ? 'selected' : '' }}>
+                                {{ $agency->name }} ({{ $agency->code }})
+                            </option>
+                        @endforeach
+                    </select>
+                </p>
+            @else
+                {{-- AGENCY/FARMER: tự điền agency_id của mình --}}
+                <input type="hidden" name="agency_id" value="{{ $defaultAgencyId ?? auth()->user()->agency_id }}">
+                <p><strong>Đại lý:</strong> {{ auth()->user()->agency?->name }}</p>
+            @endif
 
             {{-- Chỉ hiện khi INTERNAL_TRANSFER --}}
             <p id="toAgencyBlock" style="display:none;">

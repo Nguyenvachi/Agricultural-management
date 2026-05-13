@@ -4,9 +4,11 @@
 
 <div class="page-header">
     <h1><i class="bi bi-receipt me-2"></i>Đơn hàng</h1>
-    <a href="{{ route('orders.create') }}" class="btn btn-success btn-sm">
-        <i class="bi bi-plus-lg"></i> Tạo đơn hàng
-    </a>
+    @if (auth()->user()->isAdmin() || auth()->user()->isAgency() || auth()->user()->isFarmer())
+        <a href="{{ route('orders.create') }}" class="btn btn-success btn-sm">
+            <i class="bi bi-plus-lg"></i> Tạo đơn hàng
+        </a>
+    @endif
 </div>
 
 <div class="card shadow-sm">
@@ -64,7 +66,7 @@
                             <a href="{{ route('orders.show', $order) }}" class="btn btn-outline-info btn-sm">
                                 <i class="bi bi-eye"></i>
                             </a>
-                            @if ($order->status?->code !== 'CANCELLED')
+                            @if ($order->status?->code !== 'CANCELLED' && (auth()->user()->isAdmin() || auth()->user()->isAgency()))
                                 <form action="{{ route('orders.cancel', $order) }}" method="POST" class="d-inline"
                                       onsubmit="return confirm('Hủy đơn {{ $order->order_code }}?')">
                                     @csrf
