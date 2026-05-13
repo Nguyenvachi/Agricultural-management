@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('orders.index');
 });
 
 use App\Http\Controllers\AgencyController;
@@ -23,12 +23,16 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PriceListController;
+use App\Http\Controllers\UserController;
 
 Route::resource('agencies', AgencyController::class);
 Route::resource('categories', CategoryController::class);
 Route::resource('items', ItemController::class);
 Route::resource('price-lists', PriceListController::class);
 Route::resource('orders', OrderController::class)->only(['index', 'create', 'store', 'show']);
+Route::post('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+
+Route::resource('users', UserController::class);
 
 Route::get('inventories', [InventoryController::class, 'index'])->name('inventories.index');
 Route::get('inventory-transactions', [InventoryController::class, 'transactions'])->name('inventory-transactions.index');

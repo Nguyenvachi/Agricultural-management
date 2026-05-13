@@ -8,6 +8,7 @@ use App\Http\Requests\Order\StoreOrderRequest;
 use App\Models\Agency;
 use App\Models\Item;
 use App\Models\Order;
+use App\Models\SysLookupValue;
 use App\Models\User;
 use App\Services\OrderService;
 use InvalidArgumentException;
@@ -26,21 +27,40 @@ class OrderController extends Controller
 
     public function create()
     {
-        $agencies = Agency::query()->orderBy('name')->get();
-        $items = Item::query()->orderBy('name')->get();
+        $agencies   = Agency::query()->orderBy('name')->get();
+        $items      = Item::query()->orderBy('name')->get();
         $orderTypes = LookupHelper::getValuesByTypeCode(LookupCode::TYPE_ORDER_TYPE);
-        $users = User::query()->orderBy('id')->get();
+        $users      = User::query()->orderBy('id')->get();
 
-        return view('order.create', compact('agencies', 'items', 'orderTypes', 'users'));
+        // Lấy các đơn COMPLETED để chọn reference_order_id (dùng cho RETURN_ORDER)
+        $completedStatusId = LookupHelper::getValueId(LookupCode::TYPE_ORDER_STATUS, LookupCode::ORDER_COMPLETED);
+        $completedOrders = Order::query()
+            ->where('status_id', $completedStatusId)
+            ->with(['agency', 'orderType'])
+            ->orderByDesc('id')
+            ->get();
+
+        return view('order.create', compact('agencies', 'items', 'orderTypes', 'users', 'completedOrders'));
     }
 
     public function store(StoreOrderRequest $request, OrderService $orderService)
     {
         try {
-            $order = $orderService->createOrderWithOneDetail(
-                orderData: $request->validatedOrderData(),
-                detailData: $request->validatedDetailData(),
-            );
+            $orderData = $request->validatedOrderData();
+            $firstDetail = $request->validatedDetailData();
+            $extraDetails = $request->validatedExtraDetailsData();
+
+            if (count($extraDetails) > 0) {
+                $order = $orderService->createOrderWithDetails(
+                    orderData: $orderData,
+                    detailsData: array_merge([$firstDetail], $extraDetails),
+                );
+            } else {
+                $order = $orderService->createOrderWithOneDetail(
+                    orderData: $orderData,
+                    detailData: $firstDetail,
+                );
+            }
         } catch (InvalidArgumentException $e) {
             return back()
                 ->withInput()
@@ -54,8 +74,26 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
-        $order->load(['agency', 'toAgency', 'orderType', 'status', 'details.item']);
+        $order->load(['agency', 'toAgency', 'orderType', 'status', 'details.item', 'referenceOrder']);
 
         return view('order.show', compact('order'));
+    }
+
+    /**
+     * Hủy đơn hàng: rollback tồn kho + đổi status → CANCELLED.
+     */
+    public function cancel(Order $order, OrderService $orderService)
+    {
+        try {
+            // TODO: thay bằng auth()->id() khi có module auth
+            $cancelledBy = $order->user_id ?? 1;
+            $orderService->cancelOrder(order: $order, cancelledBy: (int) $cancelledBy);
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['order' => $e->getMessage()]);
+        }
+
+        return redirect()
+            ->route('orders.show', $order)
+            ->with('success', 'Đã hủy đơn hàng và rollback tồn kho thành công.');
     }
 }

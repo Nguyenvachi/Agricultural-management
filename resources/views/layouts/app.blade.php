@@ -1,43 +1,122 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>@yield('title', 'Agricultural Management')</title>
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
-    </head>
-    <body>
-        <nav>
-            <a href="{{ route('agencies.index') }}">Đại lý</a> |
-            <a href="{{ route('categories.index') }}">Danh mục</a> |
-            <a href="{{ route('items.index') }}">Mặt hàng</a> |
-            <a href="{{ route('price-lists.index') }}">Bảng giá</a>
-            <br>
-            <a href="{{ route('inventories.index') }}">Tồn kho</a> |
-            <a href="{{ route('inventory-transactions.index') }}">Biến động kho</a>
-            <br>
-            <a href="{{ route('orders.index') }}">Đơn hàng</a>
-        </nav>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>@yield('title', 'Agricultural Management')</title>
+    {{-- Bootstrap 5 CDN --}}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    {{-- Bootstrap Icons --}}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body { background: #f8f9fa; }
+        .navbar-brand { font-weight: 700; letter-spacing: .5px; }
+        .nav-link { font-size: .92rem; }
+        .table th { white-space: nowrap; }
+        .badge-active   { background:#198754; }
+        .badge-inactive { background:#6c757d; }
+        .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.2rem; }
+        .page-header h1 { font-size:1.5rem; margin:0; }
+    </style>
+</head>
+<body>
 
-        <hr>
+{{-- ── Navbar ── --}}
+<nav class="navbar navbar-expand-lg navbar-dark" style="background:#1b5e20;">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ route('orders.index') }}">
+            🌾 AgroManage
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNav">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('agencies.*') ? 'active' : '' }}"
+                       href="{{ route('agencies.index') }}">
+                        <i class="bi bi-building"></i> Đại lý
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('categories.*') ? 'active' : '' }}"
+                       href="{{ route('categories.index') }}">
+                        <i class="bi bi-tags"></i> Danh mục
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('items.*') ? 'active' : '' }}"
+                       href="{{ route('items.index') }}">
+                        <i class="bi bi-box-seam"></i> Mặt hàng
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('price-lists.*') ? 'active' : '' }}"
+                       href="{{ route('price-lists.index') }}">
+                        <i class="bi bi-currency-dollar"></i> Bảng giá
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}"
+                       href="{{ route('users.index') }}">
+                        <i class="bi bi-people"></i> Người dùng
+                    </a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle {{ request()->routeIs('inventories.*') || request()->routeIs('inventory-transactions.*') ? 'active' : '' }}"
+                       href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-archive"></i> Kho
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="{{ route('inventories.index') }}">
+                                <i class="bi bi-clipboard-data"></i> Tồn kho
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ route('inventory-transactions.index') }}">
+                                <i class="bi bi-arrow-left-right"></i> Biến động kho
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('orders.*') ? 'active' : '' }}"
+                       href="{{ route('orders.index') }}">
+                        <i class="bi bi-receipt"></i> Đơn hàng
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
 
-        @if (session('success'))
-            <p><strong>{{ session('success') }}</strong></p>
-        @endif
+{{-- ── Main content ── --}}
+<div class="container-fluid py-4 px-4">
 
-        @if ($errors->any())
-            <div>
-                <p><strong>Dữ liệu không hợp lệ:</strong></p>
-                <ul>
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
 
-        <main>
-            @yield('content')
-        </main>
-    </body>
+    @if ($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Dữ liệu không hợp lệ:</strong>
+            <ul class="mb-0 mt-1">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @yield('content')
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>
