@@ -16,3 +16,22 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+use App\Http\Controllers\AgencyController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\ItemController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\PriceListController;
+
+Route::resource('agencies', AgencyController::class);
+Route::resource('categories', CategoryController::class);
+Route::resource('items', ItemController::class);
+Route::resource('price-lists', PriceListController::class);
+Route::resource('orders', OrderController::class)->only(['index', 'create', 'store', 'show']);
+
+Route::get('inventories', [InventoryController::class, 'index'])->name('inventories.index');
+Route::get('inventory-transactions', [InventoryController::class, 'transactions'])->name('inventory-transactions.index');
+
+
+
