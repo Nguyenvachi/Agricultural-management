@@ -10,9 +10,18 @@
     <p><strong>Đại lý:</strong> {{ $order->agency?->name }}</p>
     <p><strong>Đại lý nhận:</strong> {{ $order->toAgency?->name }}</p>
     <p><strong>Loại đơn:</strong> {{ $order->orderType?->display_name }}</p>
-    <p><strong>Trạng thái:</strong> {{ $order->status?->display_name }}</p>
-    <p><strong>Ngày đơn:</strong> {{ $order->order_date?->format('Y-m-d') }}</p>
-    <p><strong>Tổng tiền:</strong> {{ $order->total_amount }}</p>
+    <p>
+        <strong>Trạng thái:</strong>
+        @if ($order->status?->code === 'CANCELLED')
+            <span style="color: red; font-weight: bold;">{{ $order->status?->display_name }} ❌</span>
+        @elseif ($order->status?->code === 'COMPLETED')
+            <span style="color: green; font-weight: bold;">{{ $order->status?->display_name }} ✅</span>
+        @else
+            <span>{{ $order->status?->display_name }}</span>
+        @endif
+    </p>
+    <p><strong>Ngày đơn:</strong> {{ $order->order_date?->format('d/m/Y') }}</p>
+    <p><strong>Tổng tiền:</strong> {{ number_format((float) $order->total_amount, 0, ',', '.') }} đ</p>
     <p><strong>Ghi chú:</strong> {{ $order->note }}</p>
 
     <hr>
@@ -39,5 +48,17 @@
         </tbody>
     </table>
 
-    <p><a href="{{ route('orders.index') }}">Quay lại</a></p>
+    <hr>
+
+    @if ($order->status?->code !== 'CANCELLED')
+        <form action="{{ route('orders.cancel', $order) }}" method="POST" style="display: inline;"
+              onsubmit="return confirm('Bạn có chắc muốn HỦY đơn {{ $order->order_code }}? Tồn kho sẽ được rollback.')">
+            @csrf
+            <button type="submit" style="color: red;">⛔ Hủy đơn hàng</button>
+        </form>
+    @else
+        <p><em style="color: red;">Đơn hàng này đã bị hủy. Không thể thực hiện thêm thao tác.</em></p>
+    @endif
+
+    <p><a href="{{ route('orders.index') }}">← Quay lại danh sách</a></p>
 @endsection

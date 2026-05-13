@@ -75,11 +75,5 @@ class PriceListController extends Controller
         return redirect()
             ->route('price-lists.index')
             ->with('success', 'Ngừng hiệu lực bảng giá thành công.');
-
-        $priceList->delete();
-
-        return redirect()
-            ->route('price-lists.index')
-            ->with('success', 'Xóa bảng giá thành công.');
     }
 }

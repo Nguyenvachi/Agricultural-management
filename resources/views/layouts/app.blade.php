@@ -11,7 +11,8 @@
             <a href="{{ route('agencies.index') }}">Đại lý</a> |
             <a href="{{ route('categories.index') }}">Danh mục</a> |
             <a href="{{ route('items.index') }}">Mặt hàng</a> |
-            <a href="{{ route('price-lists.index') }}">Bảng giá</a>
+            <a href="{{ route('price-lists.index') }}">Bảng giá</a> |
+            <a href="{{ route('users.index') }}">Người dùng</a>
             <br>
             <a href="{{ route('inventories.index') }}">Tồn kho</a> |
             <a href="{{ route('inventory-transactions.index') }}">Biến động kho</a>
