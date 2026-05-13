@@ -22,10 +22,13 @@ class StoreOrderRequest extends FormRequest
             'user_id' => ['required', 'integer', 'exists:users,id'],
             'created_by' => ['required', 'integer', 'exists:users,id'],
             'order_type_id' => ['required', 'integer', 'exists:sys_lookup_values,id'],
-            'order_date' => ['required', 'date'],
-            'note' => ['nullable', 'string'],
+            'order_date'    => ['required', 'date'],
+            'note'          => ['nullable', 'string'],
 
-            'item_id' => ['required', 'integer', 'exists:items,id'],
+            // reference_order_id: bắt buộc khi tạo RETURN_ORDER, chọn từ các đơn COMPLETED
+            'reference_order_id' => ['nullable', 'integer', 'exists:orders,id'],
+
+            'item_id'   => ['required', 'integer', 'exists:items,id'],
             'quantity' => ['required', 'numeric', 'gt:0'],
             'unit_price' => ['required', 'numeric', 'min:0'],
 
@@ -54,14 +57,21 @@ class StoreOrderRequest extends FormRequest
             }
         }
 
+        if ($orderTypeCode === LookupCode::ORDER_RETURN) {
+            if (empty($data['reference_order_id'])) {
+                throw new InvalidArgumentException('RETURN_ORDER cần chọn đơn gốc (reference_order_id).');
+            }
+        }
+
         return [
-            'agency_id' => (int) $data['agency_id'],
-            'to_agency_id' => isset($data['to_agency_id']) && $data['to_agency_id'] ? (int) $data['to_agency_id'] : null,
-            'user_id' => (int) $data['user_id'],
-            'created_by' => (int) $data['created_by'],
-            'order_type_id' => (int) $data['order_type_id'],
-            'order_date' => $data['order_date'],
-            'note' => $data['note'] ?? null,
+            'agency_id'          => (int) $data['agency_id'],
+            'to_agency_id'       => isset($data['to_agency_id']) && $data['to_agency_id'] ? (int) $data['to_agency_id'] : null,
+            'reference_order_id' => isset($data['reference_order_id']) && $data['reference_order_id'] ? (int) $data['reference_order_id'] : null,
+            'user_id'            => (int) $data['user_id'],
+            'created_by'         => (int) $data['created_by'],
+            'order_type_id'      => (int) $data['order_type_id'],
+            'order_date'         => $data['order_date'],
+            'note'               => $data['note'] ?? null,
         ];
     }
 

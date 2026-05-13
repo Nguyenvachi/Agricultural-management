@@ -1,64 +1,118 @@
 @extends('layouts.app')
 
-@section('title', 'Chi tiết đơn hàng')
+@section('title', 'Chi tiết đơn hàng — ' . $order->order_code)
 
 @section('content')
     <h1>Chi tiết đơn hàng</h1>
 
-    <p><strong>ID:</strong> {{ $order->id }}</p>
-    <p><strong>Mã đơn:</strong> {{ $order->order_code }}</p>
-    <p><strong>Đại lý:</strong> {{ $order->agency?->name }}</p>
-    <p><strong>Đại lý nhận:</strong> {{ $order->toAgency?->name }}</p>
-    <p><strong>Loại đơn:</strong> {{ $order->orderType?->display_name }}</p>
-    <p>
-        <strong>Trạng thái:</strong>
-        @if ($order->status?->code === 'CANCELLED')
-            <span style="color: red; font-weight: bold;">{{ $order->status?->display_name }} ❌</span>
-        @elseif ($order->status?->code === 'COMPLETED')
-            <span style="color: green; font-weight: bold;">{{ $order->status?->display_name }} ✅</span>
-        @else
-            <span>{{ $order->status?->display_name }}</span>
-        @endif
-    </p>
-    <p><strong>Ngày đơn:</strong> {{ $order->order_date?->format('d/m/Y') }}</p>
-    <p><strong>Tổng tiền:</strong> {{ number_format((float) $order->total_amount, 0, ',', '.') }} đ</p>
-    <p><strong>Ghi chú:</strong> {{ $order->note }}</p>
+    {{-- ─── THÔNG TIN CHUNG ──────────────────────────── --}}
+    <table border="1" cellpadding="6" cellspacing="0" style="min-width:420px; margin-bottom:16px;">
+        <tbody>
+            <tr>
+                <td><strong>Mã đơn</strong></td>
+                <td>{{ $order->order_code }}</td>
+            </tr>
+            <tr>
+                <td><strong>Loại đơn</strong></td>
+                <td>{{ $order->orderType?->display_name }} ({{ $order->orderType?->code }})</td>
+            </tr>
+            <tr>
+                <td><strong>Trạng thái</strong></td>
+                <td>
+                    @php $statusCode = $order->status?->code; @endphp
+                    @if ($statusCode === 'COMPLETED')
+                        <span style="color:green; font-weight:bold;">✅ {{ $order->status?->display_name }}</span>
+                    @elseif ($statusCode === 'CANCELLED')
+                        <span style="color:red; font-weight:bold;">❌ {{ $order->status?->display_name }}</span>
+                    @elseif ($statusCode === 'PROCESSING')
+                        <span style="color:orange; font-weight:bold;">🔄 {{ $order->status?->display_name }}</span>
+                    @else
+                        <span>{{ $order->status?->display_name }}</span>
+                    @endif
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Đại lý</strong></td>
+                <td>{{ $order->agency?->name }} ({{ $order->agency?->code }})</td>
+            </tr>
+            @if ($order->toAgency)
+                <tr>
+                    <td><strong>Đại lý nhận</strong></td>
+                    <td>{{ $order->toAgency->name }} ({{ $order->toAgency->code }})</td>
+                </tr>
+            @endif
+            @if ($order->referenceOrder)
+                <tr>
+                    <td><strong>Đơn gốc (ref)</strong></td>
+                    <td>
+                        <a href="{{ route('orders.show', $order->referenceOrder) }}">
+                            {{ $order->referenceOrder->order_code }}
+                        </a>
+                    </td>
+                </tr>
+            @endif
+            <tr>
+                <td><strong>Ngày đơn</strong></td>
+                <td>{{ $order->order_date?->format('d/m/Y') }}</td>
+            </tr>
+            <tr>
+                <td><strong>Tổng tiền</strong></td>
+                <td><strong>{{ number_format((float) $order->total_amount, 0, ',', '.') }} đ</strong></td>
+            </tr>
+            @if ($order->note)
+                <tr>
+                    <td><strong>Ghi chú</strong></td>
+                    <td>{{ $order->note }}</td>
+                </tr>
+            @endif
+        </tbody>
+    </table>
 
-    <hr>
-
-    <h3>Chi tiết</h3>
-    <table border="1" cellpadding="6" cellspacing="0">
+    {{-- ─── CHI TIẾT SẢN PHẨM ────────────────────────── --}}
+    <h3>Chi tiết sản phẩm</h3>
+    <table border="1" cellpadding="6" cellspacing="0" style="min-width:500px;">
         <thead>
             <tr>
+                <th>#</th>
                 <th>Mặt hàng</th>
-                <th>Số lượng</th>
-                <th>Đơn giá</th>
-                <th>Thành tiền</th>
+                <th>Đơn vị</th>
+                <th style="text-align:right;">Số lượng</th>
+                <th style="text-align:right;">Đơn giá</th>
+                <th style="text-align:right;">Thành tiền</th>
             </tr>
         </thead>
         <tbody>
-            @foreach ($order->details as $d)
+            @foreach ($order->details as $i => $d)
                 <tr>
-                    <td>{{ $d->item?->name }}</td>
-                    <td>{{ $d->quantity }}</td>
-                    <td>{{ $d->unit_price }}</td>
-                    <td>{{ $d->total_price }}</td>
+                    <td>{{ $i + 1 }}</td>
+                    <td>{{ $d->item?->name }} ({{ $d->item?->code }})</td>
+                    <td>{{ $d->item?->unit }}</td>
+                    <td style="text-align:right;">{{ number_format((float) $d->quantity, 2, '.', ',') }}</td>
+                    <td style="text-align:right;">{{ number_format((float) $d->unit_price, 0, ',', '.') }} đ</td>
+                    <td style="text-align:right;">{{ number_format((float) $d->total_price, 0, ',', '.') }} đ</td>
                 </tr>
             @endforeach
         </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="5" style="text-align:right;"><strong>Tổng cộng:</strong></td>
+                <td style="text-align:right;"><strong>{{ number_format((float) $order->total_amount, 0, ',', '.') }} đ</strong></td>
+            </tr>
+        </tfoot>
     </table>
 
     <hr>
 
+    {{-- ─── HÀNH ĐỘNG ─────────────────────────────────── --}}
     @if ($order->status?->code !== 'CANCELLED')
-        <form action="{{ route('orders.cancel', $order) }}" method="POST" style="display: inline;"
-              onsubmit="return confirm('Bạn có chắc muốn HỦY đơn {{ $order->order_code }}? Tồn kho sẽ được rollback.')">
+        <form action="{{ route('orders.cancel', $order) }}" method="POST" style="display:inline;"
+              onsubmit="return confirm('Bạn có chắc muốn HỦY đơn {{ $order->order_code }}?\nTồn kho sẽ được rollback.')">
             @csrf
-            <button type="submit" style="color: red;">⛔ Hủy đơn hàng</button>
+            <button type="submit" style="color:red; padding:6px 16px;">⛔ Hủy đơn hàng</button>
         </form>
     @else
-        <p><em style="color: red;">Đơn hàng này đã bị hủy. Không thể thực hiện thêm thao tác.</em></p>
+        <p><em style="color:red;">Đơn đã bị hủy — không thể thực hiện thêm thao tác.</em></p>
     @endif
 
-    <p><a href="{{ route('orders.index') }}">← Quay lại danh sách</a></p>
+    <a href="{{ route('orders.index') }}" style="margin-left:16px;">← Quay lại danh sách</a>
 @endsection

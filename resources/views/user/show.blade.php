@@ -11,6 +11,7 @@
     <p><strong>Vai trò:</strong> {{ $user->role?->display_name }} ({{ $user->role?->code }})</p>
     <p><strong>Đại lý:</strong> {{ $user->agency?->name ?? '—' }}</p>
     <p><strong>Điện thoại:</strong> {{ $user->phone ?? '—' }}</p>
+    <p><strong>Số đơn đã tạo:</strong> {{ $user->orders()->count() }} đơn</p>
     <p>
         <strong>Trạng thái:</strong>
         @if ($user->is_active)

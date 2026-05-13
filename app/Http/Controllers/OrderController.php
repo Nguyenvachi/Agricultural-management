@@ -8,6 +8,7 @@ use App\Http\Requests\Order\StoreOrderRequest;
 use App\Models\Agency;
 use App\Models\Item;
 use App\Models\Order;
+use App\Models\SysLookupValue;
 use App\Models\User;
 use App\Services\OrderService;
 use InvalidArgumentException;
@@ -26,12 +27,20 @@ class OrderController extends Controller
 
     public function create()
     {
-        $agencies = Agency::query()->orderBy('name')->get();
-        $items = Item::query()->orderBy('name')->get();
+        $agencies   = Agency::query()->orderBy('name')->get();
+        $items      = Item::query()->orderBy('name')->get();
         $orderTypes = LookupHelper::getValuesByTypeCode(LookupCode::TYPE_ORDER_TYPE);
-        $users = User::query()->orderBy('id')->get();
+        $users      = User::query()->orderBy('id')->get();
 
-        return view('order.create', compact('agencies', 'items', 'orderTypes', 'users'));
+        // Lấy các đơn COMPLETED để chọn reference_order_id (dùng cho RETURN_ORDER)
+        $completedStatusId = LookupHelper::getValueId(LookupCode::TYPE_ORDER_STATUS, LookupCode::ORDER_COMPLETED);
+        $completedOrders = Order::query()
+            ->where('status_id', $completedStatusId)
+            ->with(['agency', 'orderType'])
+            ->orderByDesc('id')
+            ->get();
+
+        return view('order.create', compact('agencies', 'items', 'orderTypes', 'users', 'completedOrders'));
     }
 
     public function store(StoreOrderRequest $request, OrderService $orderService)
@@ -65,7 +74,7 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
-        $order->load(['agency', 'toAgency', 'orderType', 'status', 'details.item']);
+        $order->load(['agency', 'toAgency', 'orderType', 'status', 'details.item', 'referenceOrder']);
 
         return view('order.show', compact('order'));
     }

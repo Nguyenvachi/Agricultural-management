@@ -57,4 +57,20 @@ class Order extends Model
     {
         return $this->hasMany(OrderDetail::class, 'order_id');
     }
+
+    /**
+     * Đơn gốc (dùng cho RETURN_ORDER).
+     */
+    public function referenceOrder()
+    {
+        return $this->belongsTo(Order::class, 'reference_order_id');
+    }
+
+    /**
+     * Người tạo đơn.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 }
