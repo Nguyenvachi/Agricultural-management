@@ -37,10 +37,21 @@ class OrderController extends Controller
     public function store(StoreOrderRequest $request, OrderService $orderService)
     {
         try {
-            $order = $orderService->createOrderWithOneDetail(
-                orderData: $request->validatedOrderData(),
-                detailData: $request->validatedDetailData(),
-            );
+            $orderData = $request->validatedOrderData();
+            $firstDetail = $request->validatedDetailData();
+            $extraDetails = $request->validatedExtraDetailsData();
+
+            if (count($extraDetails) > 0) {
+                $order = $orderService->createOrderWithDetails(
+                    orderData: $orderData,
+                    detailsData: array_merge([$firstDetail], $extraDetails),
+                );
+            } else {
+                $order = $orderService->createOrderWithOneDetail(
+                    orderData: $orderData,
+                    detailData: $firstDetail,
+                );
+            }
         } catch (InvalidArgumentException $e) {
             return back()
                 ->withInput()
@@ -57,5 +68,23 @@ class OrderController extends Controller
         $order->load(['agency', 'toAgency', 'orderType', 'status', 'details.item']);
 
         return view('order.show', compact('order'));
+    }
+
+    /**
+     * Hủy đơn hàng: rollback tồn kho + đổi status → CANCELLED.
+     */
+    public function cancel(Order $order, OrderService $orderService)
+    {
+        try {
+            // TODO: thay bằng auth()->id() khi có module auth
+            $cancelledBy = $order->user_id ?? 1;
+            $orderService->cancelOrder(order: $order, cancelledBy: (int) $cancelledBy);
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['order' => $e->getMessage()]);
+        }
+
+        return redirect()
+            ->route('orders.show', $order)
+            ->with('success', 'Đã hủy đơn hàng và rollback tồn kho thành công.');
     }
 }

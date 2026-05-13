@@ -59,4 +59,9 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Agency::class, 'agency_id');
     }
+
+    public function role()
+    {
+        return $this->belongsTo(SysLookupValue::class, 'role_id');
+    }
 }

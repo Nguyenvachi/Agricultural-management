@@ -28,6 +28,12 @@ class StoreOrderRequest extends FormRequest
             'item_id' => ['required', 'integer', 'exists:items,id'],
             'quantity' => ['required', 'numeric', 'gt:0'],
             'unit_price' => ['required', 'numeric', 'min:0'],
+
+            // Multi-details (optional): dùng để thêm nhiều dòng ngoài dòng detail bắt buộc bên trên.
+            'details' => ['nullable', 'array', 'min:1'],
+            'details.*.item_id' => ['required_with:details', 'integer', 'exists:items,id'],
+            'details.*.quantity' => ['required_with:details', 'numeric', 'gt:0'],
+            'details.*.unit_price' => ['required_with:details', 'numeric', 'min:0'],
         ];
     }
 
@@ -50,7 +56,7 @@ class StoreOrderRequest extends FormRequest
 
         return [
             'agency_id' => (int) $data['agency_id'],
-            'to_agency_id' => $data['to_agency_id'] ? (int) $data['to_agency_id'] : null,
+            'to_agency_id' => isset($data['to_agency_id']) && $data['to_agency_id'] ? (int) $data['to_agency_id'] : null,
             'user_id' => (int) $data['user_id'],
             'created_by' => (int) $data['created_by'],
             'order_type_id' => (int) $data['order_type_id'],
@@ -68,5 +74,36 @@ class StoreOrderRequest extends FormRequest
             'quantity' => (float) $data['quantity'],
             'unit_price' => (float) $data['unit_price'],
         ];
+    }
+
+    /** @return array<int, array{item_id:int, quantity:float, unit_price:float}> */
+    public function validatedExtraDetailsData(): array
+    {
+        $data = $this->validated();
+
+        $details = $data['details'] ?? [];
+        if (!is_array($details)) {
+            return [];
+        }
+
+        $result = [];
+        foreach ($details as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            // Defensive: nếu UI gửi row rỗng (do JS), bỏ qua.
+            if (empty($row['item_id'])) {
+                continue;
+            }
+
+            $result[] = [
+                'item_id' => (int) ($row['item_id'] ?? 0),
+                'quantity' => (float) ($row['quantity'] ?? 0),
+                'unit_price' => (float) ($row['unit_price'] ?? 0),
+            ];
+        }
+
+        return $result;
     }
 }

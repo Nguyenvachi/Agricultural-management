@@ -92,6 +92,60 @@
             <input type="number" step="0.01" name="unit_price" value="{{ old('unit_price') }}">
         </p>
 
+        <hr>
+
+        <h3>Chi tiết bổ sung (n dòng - tùy chọn)</h3>
+        <p style="margin-top: 0;">
+            Bạn có thể thêm nhiều dòng chi tiết. Hệ thống sẽ tự cộng <strong>total_amount</strong> và cập nhật kho cho từng dòng.
+        </p>
+
+        @php
+            $oldDetails = old('details', []);
+            if (!is_array($oldDetails)) {
+                $oldDetails = [];
+            }
+        @endphp
+
+        <table border="1" cellpadding="6" cellspacing="0" style="width: 100%; max-width: 900px;">
+            <thead>
+                <tr>
+                    <th>Mặt hàng</th>
+                    <th>Số lượng</th>
+                    <th>Đơn giá</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody id="extraDetailsBody">
+                @foreach ($oldDetails as $i => $row)
+                    <tr>
+                        <td>
+                            <select name="details[{{ $i }}][item_id]">
+                                <option value="">-- Chọn --</option>
+                                @foreach ($items as $item)
+                                    <option value="{{ $item->id }}" {{ (string) data_get($row, 'item_id') === (string) $item->id ? 'selected' : '' }}>
+                                        {{ $item->name }} ({{ $item->code }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </td>
+                        <td>
+                            <input type="number" step="0.01" name="details[{{ $i }}][quantity]" value="{{ data_get($row, 'quantity') }}">
+                        </td>
+                        <td>
+                            <input type="number" step="0.01" name="details[{{ $i }}][unit_price]" value="{{ data_get($row, 'unit_price') }}">
+                        </td>
+                        <td>
+                            <button type="button" class="btn-remove-row">Xóa dòng</button>
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+
+        <p>
+            <button type="button" id="btnAddRow">+ Thêm dòng</button>
+        </p>
+
         <button type="submit">Tạo đơn (hoàn thành + cập nhật kho)</button>
         <a href="{{ route('orders.index') }}">Hủy</a>
     </form>
@@ -105,6 +159,57 @@
                 var sync = function () { createdByInput.value = userSelect.value; };
                 userSelect.addEventListener('change', sync);
                 sync();
+            }
+
+            var body = document.getElementById('extraDetailsBody');
+            var addBtn = document.getElementById('btnAddRow');
+
+            var bindRemove = function (root) {
+                var buttons = root.querySelectorAll('.btn-remove-row');
+                buttons.forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        var tr = btn.closest('tr');
+                        if (tr) {
+                            tr.remove();
+                        }
+                    });
+                });
+            };
+
+            var nextIndex = (function () {
+                var existing = body ? body.querySelectorAll('tr').length : 0;
+                return existing;
+            })();
+
+            var makeRow = function (index) {
+                var tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <select name="details[${index}][item_id]">
+                            <option value="">-- Chọn --</option>
+                            @foreach ($items as $item)
+                                <option value="{{ $item->id }}">{{ $item->name }} ({{ $item->code }})</option>
+                            @endforeach
+                        </select>
+                    </td>
+                    <td><input type="number" step="0.01" name="details[${index}][quantity]" value=""></td>
+                    <td><input type="number" step="0.01" name="details[${index}][unit_price]" value=""></td>
+                    <td><button type="button" class="btn-remove-row">Xóa dòng</button></td>
+                `;
+                return tr;
+            };
+
+            if (addBtn && body) {
+                addBtn.addEventListener('click', function () {
+                    var tr = makeRow(nextIndex);
+                    body.appendChild(tr);
+                    bindRemove(tr);
+                    nextIndex += 1;
+                });
+            }
+
+            if (body) {
+                bindRemove(body);
             }
         });
     </script>
