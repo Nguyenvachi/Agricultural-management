@@ -14,7 +14,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run()
     {
+        $this->call(SysLookupSeeder::class);
         $this->call(InitialUserSeeder::class);
+        $this->call(SampleSystemSeeder::class);
 
         // \App\Models\User::factory(10)->create();
 

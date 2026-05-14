@@ -40,18 +40,28 @@ Route::middleware('auth')->group(function () {
 
     // ── Price List: ADMIN full CRUD; AGENCY+FARMER chỉ xem ───────────
     Route::get('price-lists',           [PriceListController::class, 'index'])->name('price-lists.index');
-    Route::get('price-lists/{price_list}', [PriceListController::class, 'show'])->name('price-lists.show');
+    Route::get('price-lists/{price_list}', [PriceListController::class, 'show'])
+        ->whereNumber('price_list')
+        ->name('price-lists.show');
     Route::middleware('role:ADMIN')->group(function () {
         Route::get('price-lists/create',              [PriceListController::class, 'create'])->name('price-lists.create');
         Route::post('price-lists',                    [PriceListController::class, 'store'])->name('price-lists.store');
-        Route::get('price-lists/{price_list}/edit',  [PriceListController::class, 'edit'])->name('price-lists.edit');
-        Route::put('price-lists/{price_list}',       [PriceListController::class, 'update'])->name('price-lists.update');
-        Route::delete('price-lists/{price_list}',    [PriceListController::class, 'destroy'])->name('price-lists.destroy');
+        Route::get('price-lists/{price_list}/edit',  [PriceListController::class, 'edit'])
+            ->whereNumber('price_list')
+            ->name('price-lists.edit');
+        Route::put('price-lists/{price_list}',       [PriceListController::class, 'update'])
+            ->whereNumber('price_list')
+            ->name('price-lists.update');
+        Route::delete('price-lists/{price_list}',    [PriceListController::class, 'destroy'])
+            ->whereNumber('price_list')
+            ->name('price-lists.destroy');
     });
 
     // ── Orders: ADMIN full; AGENCY/FARMER tạo; CUSTOMER xem ──────────
     Route::get('orders',                [OrderController::class, 'index'])->name('orders.index');
-    Route::get('orders/{order}',        [OrderController::class, 'show'])->name('orders.show');
+    Route::get('orders/{order}',        [OrderController::class, 'show'])
+        ->whereNumber('order')
+        ->name('orders.show');
 
     // Tạo đơn: ADMIN + AGENCY + FARMER
     Route::middleware('role:ADMIN,AGENCY,FARMER')->group(function () {
@@ -61,7 +71,9 @@ Route::middleware('auth')->group(function () {
 
     // Hủy đơn: ADMIN + AGENCY
     Route::middleware('role:ADMIN,AGENCY')->group(function () {
-        Route::post('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+        Route::post('orders/{order}/cancel', [OrderController::class, 'cancel'])
+            ->whereNumber('order')
+            ->name('orders.cancel');
     });
 
     // ── Inventory: ADMIN + AGENCY ─────────────────────────────────────
