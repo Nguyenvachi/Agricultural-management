@@ -13,7 +13,7 @@
             <form action="{{ route('price-lists.store') }}" method="POST">
                 @csrf
 
-                <div class="row mb-3">
+                <div class="row g-3 mb-3">
                     <div class="col">
                         <label class="form-label fw-semibold">Đại lý <span class="text-danger">*</span></label>
                         <select name="agency_id" class="form-select @error('agency_id') is-invalid @enderror">
@@ -46,7 +46,7 @@
                     </div>
                 </div>
 
-                <div class="row mb-3">
+                <div class="row g-3 mb-3">
                     <div class="col">
                         <label class="form-label fw-semibold">Loại giá <span class="text-danger">*</span></label>
                         <select name="price_type_id" class="form-select @error('price_type_id') is-invalid @enderror">
@@ -73,15 +73,24 @@
                     </div>
                 </div>
 
-                <div class="row mb-3">
+                <div class="row g-3 mb-3">
                     <div class="col">
                         <label class="form-label fw-semibold">Hiệu lực từ <span class="text-danger">*</span></label>
-                        <input type="date" name="effective_from" class="form-control"
+                        <input type="date" name="effective_from"
+                            class="form-control @error('effective_from') is-invalid @enderror"
                             value="{{ old('effective_from') }}">
+                        @error('effective_from')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="col">
                         <label class="form-label fw-semibold">Hiệu lực đến</label>
-                        <input type="date" name="effective_to" class="form-control" value="{{ old('effective_to') }}">
+                        <input type="date" name="effective_to"
+                            class="form-control @error('effective_to') is-invalid @enderror"
+                            value="{{ old('effective_to') }}">
+                        @error('effective_to')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
 
@@ -93,7 +102,7 @@
                     </div>
                 </div>
 
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 flex-wrap">
                     <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> Lưu</button>
                     <a href="{{ route('price-lists.index') }}" class="btn btn-outline-secondary">Hủy</a>
                 </div>
