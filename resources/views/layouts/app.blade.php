@@ -39,6 +39,8 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: .75rem;
+            flex-wrap: wrap;
             margin-bottom: 1.2rem;
         }
 
@@ -54,7 +56,7 @@
     {{-- ── Navbar ── --}}
     <nav class="navbar navbar-expand-lg navbar-dark" style="background:#1b5e20;">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ route('orders.index') }}">
+            <a class="navbar-brand" href="{{ route('dashboard') }}">
                 🌾 AgroManage
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
@@ -62,6 +64,16 @@
             </button>
             <div class="collapse navbar-collapse" id="mainNav">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
+                    {{-- Dashboard: ADMIN + AGENCY only (FIX 2) --}}
+                    @if (auth()->user()->isAdmin() || auth()->user()->isAgency())
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
+                                href="{{ route('dashboard') }}">
+                                <i class="bi bi-speedometer2"></i> Dashboard
+                            </a>
+                        </li>
+                    @endif
 
                     {{-- ADMIN only: Master Data --}}
                     @if (auth()->user()->isAdmin())
@@ -172,20 +184,27 @@
     </nav>
 
     {{-- ── Main content ── --}}
-    <div class="container-fluid py-4 px-4">
+    <div class="container-fluid py-4 px-3 px-md-4">
 
         @if (session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
                 <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         @endif
 
+        @if (session('warning'))
+            <div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
+                <i class="bi bi-exclamation-circle-fill me-2"></i>{{ session('warning') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+
         @if ($errors->any())
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
                 <i class="bi bi-exclamation-triangle-fill me-2"></i>
                 <strong>Dữ liệu không hợp lệ:</strong>
-                <ul class="mb-0 mt-1">
+                <ul class="mb-0 mt-1 small">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
                     @endforeach

@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 class PriceList extends Model
 {
@@ -41,5 +43,48 @@ class PriceList extends Model
     public function priceType()
     {
         return $this->belongsTo(SysLookupValue::class, 'price_type_id');
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function isEffectiveOn(?CarbonInterface $date = null): bool
+    {
+        $date = $date ? Carbon::instance($date) : now();
+
+        if (! $this->is_active) {
+            return false;
+        }
+
+        if ($this->effective_from && $this->effective_from->gt($date)) {
+            return false;
+        }
+
+        if ($this->effective_to && $this->effective_to->lt($date)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function effectiveStatus(?CarbonInterface $date = null): string
+    {
+        $date = $date ? Carbon::instance($date) : now();
+
+        if (! $this->is_active) {
+            return 'INACTIVE';
+        }
+
+        if ($this->effective_from && $this->effective_from->gt($date)) {
+            return 'UPCOMING';
+        }
+
+        if ($this->effective_to && $this->effective_to->lt($date)) {
+            return 'EXPIRED';
+        }
+
+        return 'CURRENT';
     }
 }

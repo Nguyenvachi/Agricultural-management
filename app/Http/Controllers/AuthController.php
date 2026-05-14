@@ -11,7 +11,7 @@ class AuthController extends Controller
     public function showLogin()
     {
         if (Auth::check()) {
-            return redirect()->route('orders.index');
+            return redirect()->route('dashboard');
         }
 
         return view('auth.login');
@@ -41,7 +41,7 @@ class AuthController extends Controller
             Auth::user()->loadMissing('role');
 
             return redirect()
-                ->intended(route('orders.index'))
+                ->intended(route('dashboard'))
                 ->with('success', 'Đăng nhập thành công! Xin chào, ' . Auth::user()->full_name . '.');
         }
 

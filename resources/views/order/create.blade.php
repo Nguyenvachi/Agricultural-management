@@ -13,16 +13,14 @@
     <form action="{{ route('orders.store') }}" method="POST" id="orderForm">
         @csrf
 
-        {{-- Thông báo lỗi nghiệp vụ (throw InvalidArgumentException) --}}
         @error('order')
             <div class="alert alert-danger">
                 <i class="bi bi-exclamation-octagon-fill me-2"></i>{{ $message }}
             </div>
         @enderror
 
-        {{-- ─── THÔNG TIN CHUNG ─────────────────────────────────── --}}
         <div class="card shadow-sm mb-3">
-            <div class="card-header fw-semibold">📋 Thông tin chung</div>
+            <div class="card-header fw-semibold">Thông tin chung</div>
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-4">
@@ -42,7 +40,6 @@
                         @enderror
                     </div>
 
-                    {{-- Đại lý: chỉ Admin được chọn; còn lại auto theo user --}}
                     <div class="col-md-4">
                         @if (auth()->user()->isAdmin())
                             <label class="form-label fw-semibold">Đại lý <span class="text-danger">*</span></label>
@@ -60,38 +57,46 @@
                             @enderror
                         @else
                             <input type="hidden" name="agency_id"
-                                value="{{ $defaultAgencyId ?? auth()->user()->agency_id }}">
+                                value="{{ old('agency_id', $defaultAgencyId ?? auth()->user()->agency_id) }}">
                             <label class="form-label fw-semibold">Đại lý</label>
                             <div class="form-control bg-light">
-                                {{ auth()->user()->agency?->name ?? '—' }}
+                                {{ auth()->user()->agency?->name ?? 'Chưa gắn đại lý' }}
                             </div>
                         @endif
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Người tạo <span class="text-danger">*</span></label>
-                        <select name="user_id" id="userIdSelect" class="form-select @error('user_id') is-invalid @enderror">
-                            <option value="">-- Chọn --</option>
-                            @foreach ($users as $user)
-                                <option value="{{ $user->id }}"
-                                    {{ (string) old('user_id') === (string) $user->id ? 'selected' : '' }}>
-                                    #{{ $user->id }} — {{ $user->full_name ?? $user->username }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <input type="hidden" name="created_by" id="createdByInput" value="{{ old('created_by') }}">
+                        @if (auth()->user()->isAdmin())
+                            <label class="form-label fw-semibold">Người tạo <span class="text-danger">*</span></label>
+                            <select name="user_id" id="userIdSelect"
+                                class="form-select @error('user_id') is-invalid @enderror">
+                                <option value="">-- Chọn --</option>
+                                @foreach ($users as $user)
+                                    <option value="{{ $user->id }}"
+                                        {{ (string) old('user_id') === (string) $user->id ? 'selected' : '' }}>
+                                        #{{ $user->id }} - {{ $user->full_name ?? $user->username }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        @else
+                            <input type="hidden" name="user_id" id="userIdSelect" value="{{ auth()->id() }}">
+                            <label class="form-label fw-semibold">Người tạo</label>
+                            <div class="form-control bg-light">
+                                #{{ auth()->id() }} - {{ auth()->user()->full_name ?? auth()->user()->username }}
+                            </div>
+                        @endif
+                        <input type="hidden" name="created_by" id="createdByInput"
+                            value="{{ old('created_by', auth()->id()) }}">
                         @error('user_id')
-                            <div class="invalid-feedback">{{ $message }}</div>
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
                         @error('created_by')
                             <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
                     </div>
 
-                    {{-- Chỉ hiện khi INTERNAL_TRANSFER --}}
                     <div class="col-md-6" id="toAgencyBlock" style="display:none;">
-                        <label class="form-label fw-semibold">Đại lý nhận <span
-                                class="text-muted small">(INTERNAL_TRANSFER)</span></label>
+                        <label class="form-label fw-semibold">Đại lý nhận</label>
                         <select name="to_agency_id" class="form-select @error('to_agency_id') is-invalid @enderror">
                             <option value="">-- Không áp dụng --</option>
                             @foreach ($agencies as $agency)
@@ -106,10 +111,8 @@
                         @enderror
                     </div>
 
-                    {{-- Chỉ hiện khi RETURN_ORDER --}}
                     <div class="col-md-6" id="referenceOrderBlock" style="display:none;">
-                        <label class="form-label fw-semibold">Đơn gốc <span class="text-muted small">(RETURN_ORDER — bắt
-                                buộc)</span></label>
+                        <label class="form-label fw-semibold">Đơn gốc</label>
                         <select name="reference_order_id"
                             class="form-select @error('reference_order_id') is-invalid @enderror">
                             <option value="">-- Chọn đơn gốc --</option>
@@ -122,6 +125,23 @@
                             @endforeach
                         </select>
                         @error('reference_order_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="col-md-6" id="adjustmentDirectionBlock" style="display:none;">
+                        <label class="form-label fw-semibold">Hướng điều chỉnh</label>
+                        <select name="adjustment_direction"
+                            class="form-select @error('adjustment_direction') is-invalid @enderror">
+                            <option value="">-- Chọn hướng --</option>
+                            <option value="IMPORT" {{ old('adjustment_direction') === 'IMPORT' ? 'selected' : '' }}>
+                                Tăng kho (IMPORT)
+                            </option>
+                            <option value="EXPORT" {{ old('adjustment_direction') === 'EXPORT' ? 'selected' : '' }}>
+                                Giảm kho (EXPORT)
+                            </option>
+                        </select>
+                        @error('adjustment_direction')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
@@ -147,9 +167,8 @@
             </div>
         </div>
 
-        {{-- ─── CHI TIẾT ĐƠN (DÒNG 1) ───────────────────────────── --}}
         <div class="card shadow-sm mb-3">
-            <div class="card-header fw-semibold">📦 Chi tiết đơn — Dòng 1 (bắt buộc)</div>
+            <div class="card-header fw-semibold">Chi tiết đơn - dòng 1</div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-bordered mb-0 align-middle">
@@ -199,11 +218,10 @@
             </div>
         </div>
 
-        {{-- ─── CHI TIẾT BỔ SUNG ────────────────────────────────── --}}
         <div class="card shadow-sm mb-3">
-            <div class="card-header fw-semibold">➕ Chi tiết bổ sung (tuỳ chọn — nhiều dòng)</div>
+            <div class="card-header fw-semibold">Chi tiết bổ sung</div>
             <div class="card-body">
-                <p class="mb-2 text-muted">Hệ thống tự cộng <code>total_amount</code> và cập nhật kho cho từng dòng.</p>
+                <p class="mb-2 text-muted">Hệ thống tự động tính total_amount và cập nhật kho cho từng dòng.</p>
 
                 @php
                     $oldDetails = old('details', []);
@@ -236,17 +254,20 @@
                                             @endforeach
                                         </select>
                                     </td>
-                                    <td><input type="number" step="0.01"
+                                    <td>
+                                        <input type="number" step="0.01"
                                             name="details[{{ $i }}][quantity]"
                                             value="{{ data_get($row, 'quantity') }}" class="form-control text-end"
-                                            placeholder="0"></td>
-                                    <td><input type="number" step="0.01"
+                                            placeholder="0">
+                                    </td>
+                                    <td>
+                                        <input type="number" step="0.01"
                                             name="details[{{ $i }}][unit_price]"
                                             value="{{ data_get($row, 'unit_price') }}" class="form-control text-end"
-                                            placeholder="0"></td>
+                                            placeholder="0">
+                                    </td>
                                     <td class="text-center">
-                                        <button type="button" class="btn btn-outline-danger btn-sm btn-remove-row"
-                                            title="Xóa dòng">
+                                        <button type="button" class="btn btn-outline-danger btn-sm btn-remove-row">
                                             <i class="bi bi-x"></i>
                                         </button>
                                     </td>
@@ -268,47 +289,57 @@
             </div>
         </div>
 
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 flex-wrap">
             <button type="submit" class="btn btn-success">
-                <i class="bi bi-check-lg"></i> Tạo đơn (cập nhật kho)
+                <i class="bi bi-check-lg"></i> Tạo đơn
             </button>
             <a href="{{ route('orders.index') }}" class="btn btn-outline-secondary">Hủy</a>
         </div>
     </form>
 
-    {{-- ─── JavaScript ─────────────────────────────────────────── --}}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // ── Đồng bộ created_by = user_id ────────────────────
             var userSelect = document.getElementById('userIdSelect');
             var createdByInput = document.getElementById('createdByInput');
 
             function syncCreatedBy() {
-                if (createdByInput) createdByInput.value = userSelect ? userSelect.value : '';
+                if (createdByInput && userSelect) {
+                    createdByInput.value = userSelect.value || '';
+                }
             }
+
             if (userSelect) {
                 userSelect.addEventListener('change', syncCreatedBy);
                 syncCreatedBy();
             }
 
-            // ── Hiện/ẩn to_agency_id và reference_order_id theo order_type ──
             var typeSelect = document.getElementById('orderTypeSelect');
             var toAgencyBlock = document.getElementById('toAgencyBlock');
             var referenceOrderBlock = document.getElementById('referenceOrderBlock');
+            var adjustmentDirectionBlock = document.getElementById('adjustmentDirectionBlock');
 
             function updateFieldVisibility() {
                 var selected = typeSelect ? typeSelect.options[typeSelect.selectedIndex] : null;
                 var code = selected ? selected.getAttribute('data-code') : '';
-                if (toAgencyBlock) toAgencyBlock.style.display = (code === 'INTERNAL_TRANSFER') ? '' : 'none';
-                if (referenceOrderBlock) referenceOrderBlock.style.display = (code === 'RETURN_ORDER') ? '' :
-                    'none';
+
+                if (toAgencyBlock) {
+                    toAgencyBlock.style.display = code === 'INTERNAL_TRANSFER' ? '' : 'none';
+                }
+
+                if (referenceOrderBlock) {
+                    referenceOrderBlock.style.display = code === 'RETURN_ORDER' ? '' : 'none';
+                }
+
+                if (adjustmentDirectionBlock) {
+                    adjustmentDirectionBlock.style.display = code === 'ADJUSTMENT_ORDER' ? '' : 'none';
+                }
             }
+
             if (typeSelect) {
                 typeSelect.addEventListener('change', updateFieldVisibility);
                 updateFieldVisibility();
             }
 
-            // ── Thêm / xóa dòng chi tiết bổ sung ───────────────
             var body = document.getElementById('extraDetailsBody');
             var addBtn = document.getElementById('btnAddRow');
             var nextIdx = body ? body.querySelectorAll('tr').length : 0;
@@ -317,7 +348,9 @@
                 root.querySelectorAll('.btn-remove-row').forEach(function(btn) {
                     btn.addEventListener('click', function() {
                         var tr = btn.closest('tr');
-                        if (tr) tr.remove();
+                        if (tr) {
+                            tr.remove();
+                        }
                     });
                 });
             }
@@ -336,7 +369,7 @@
                     <td><input type="number" step="0.01" name="details[${index}][quantity]" class="form-control text-end" placeholder="0"></td>
                     <td><input type="number" step="0.01" name="details[${index}][unit_price]" class="form-control text-end" placeholder="0"></td>
                     <td class="text-center">
-                        <button type="button" class="btn btn-outline-danger btn-sm btn-remove-row" title="Xóa dòng">
+                        <button type="button" class="btn btn-outline-danger btn-sm btn-remove-row">
                             <i class="bi bi-x"></i>
                         </button>
                     </td>
@@ -351,7 +384,10 @@
                     bindRemove(tr);
                 });
             }
-            if (body) bindRemove(body);
+
+            if (body) {
+                bindRemove(body);
+            }
         });
     </script>
 @endsection

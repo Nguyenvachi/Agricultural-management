@@ -94,10 +94,22 @@ class InitialUserSeeder extends Seeder
         ];
 
         foreach ($sampleUsers as $username => $payload) {
-            $user = User::withTrashed()->updateOrCreate(
-                ['username' => $username],
-                $payload
-            );
+            $existing = User::withTrashed()->where('username', $username)->first();
+
+            if (! $existing) {
+                // create once with hashed password; do not re-hash on subsequent seeds
+                $user = User::create($payload);
+            } else {
+                // update non-sensitive fields only; avoid changing password_hash every seed run
+                $existing->update([
+                    'role_id' => $payload['role_id'],
+                    'agency_id' => $payload['agency_id'],
+                    'full_name' => $payload['full_name'],
+                    'phone' => $payload['phone'],
+                    'is_active' => $payload['is_active'],
+                ]);
+                $user = $existing;
+            }
 
             if (method_exists($user, 'trashed') && $user->trashed()) {
                 $user->restore();

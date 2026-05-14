@@ -21,9 +21,9 @@ class SampleOrderInventorySeeder extends Seeder
         $this->call(InitialUserSeeder::class);
 
         // Tránh seed lặp (đơn mẫu)
-        if (Order::query()->where('note', 'like', '[SAMPLE]%')->exists()) {
-            return;
-        }
+        // Previously we returned early if any SAMPLE note existed, which can leave a
+        // partially-seeded state when rerun. Instead we check per-sample note and
+        // create missing ones only.
 
         $admin = User::withTrashed()->where('username', 'admin')->first();
         if (!$admin) {
@@ -70,54 +70,63 @@ class SampleOrderInventorySeeder extends Seeder
         $actorUserId = (int) (($agencyUser?->id) ?: $admin->id);
 
         // 1) PURCHASE_ORDER: nhập kho cho AG001 (tạo tồn kho ban đầu)
-        $orderService->createOrderWithDetails(
-            orderData: [
-                'agency_id' => (int) $ag1->id,
-                'user_id' => $actorUserId,
-                'order_type_id' => $purchaseTypeId,
-                'order_date' => $orderDate,
-                'created_by' => $createdBy,
-                'note' => '[SAMPLE] Nhập kho ban đầu (AG001)',
-            ],
-            detailsData: [
-                ['item_id' => (int) $itemRice->id, 'quantity' => 200, 'unit_price' => 12000],
-                ['item_id' => (int) $itemCorn->id, 'quantity' => 150, 'unit_price' => 9000],
-                ['item_id' => (int) $itemMango->id, 'quantity' => 80, 'unit_price' => 25000],
-            ]
-        );
+        $note1 = '[SAMPLE] Nhập kho ban đầu (AG001)';
+        if (! Order::query()->where('note', $note1)->exists()) {
+            $orderService->createOrderWithDetails(
+                orderData: [
+                    'agency_id' => (int) $ag1->id,
+                    'user_id' => $actorUserId,
+                    'order_type_id' => $purchaseTypeId,
+                    'order_date' => $orderDate,
+                    'created_by' => $createdBy,
+                    'note' => $note1,
+                ],
+                detailsData: [
+                    ['item_id' => (int) $itemRice->id, 'quantity' => 200, 'unit_price' => 12000],
+                    ['item_id' => (int) $itemCorn->id, 'quantity' => 150, 'unit_price' => 9000],
+                    ['item_id' => (int) $itemMango->id, 'quantity' => 80, 'unit_price' => 25000],
+                ]
+            );
+        }
 
         // 2) SALES_ORDER: bán một phần từ AG001
-        $orderService->createOrderWithDetails(
-            orderData: [
-                'agency_id' => (int) $ag1->id,
-                'user_id' => $actorUserId,
-                'order_type_id' => $salesTypeId,
-                'order_date' => $orderDate,
-                'created_by' => $createdBy,
-                'note' => '[SAMPLE] Bán hàng (AG001)',
-            ],
-            detailsData: [
-                ['item_id' => (int) $itemRice->id, 'quantity' => 30, 'unit_price' => 15000],
-                ['item_id' => (int) $itemMango->id, 'quantity' => 10, 'unit_price' => 32000],
-            ]
-        );
+        $note2 = '[SAMPLE] Bán hàng (AG001)';
+        if (! Order::query()->where('note', $note2)->exists()) {
+            $orderService->createOrderWithDetails(
+                orderData: [
+                    'agency_id' => (int) $ag1->id,
+                    'user_id' => $actorUserId,
+                    'order_type_id' => $salesTypeId,
+                    'order_date' => $orderDate,
+                    'created_by' => $createdBy,
+                    'note' => $note2,
+                ],
+                detailsData: [
+                    ['item_id' => (int) $itemRice->id, 'quantity' => 30, 'unit_price' => 15000],
+                    ['item_id' => (int) $itemMango->id, 'quantity' => 10, 'unit_price' => 32000],
+                ]
+            );
+        }
 
         // 3) INTERNAL_TRANSFER: chuyển kho từ AG001 sang AG002
-        $orderService->createOrderWithOneDetail(
-            orderData: [
-                'agency_id' => (int) $ag1->id,
-                'to_agency_id' => (int) $ag2->id,
-                'user_id' => $actorUserId,
-                'order_type_id' => $transferTypeId,
-                'order_date' => $orderDate,
-                'created_by' => $createdBy,
-                'note' => '[SAMPLE] Chuyển kho nội bộ AG001 → AG002',
-            ],
-            detailData: [
-                'item_id' => (int) $itemCorn->id,
-                'quantity' => 40,
-                'unit_price' => 0,
-            ]
-        );
+        $note3 = '[SAMPLE] Chuyển kho nội bộ AG001 → AG002';
+        if (! Order::query()->where('note', $note3)->exists()) {
+            $orderService->createOrderWithOneDetail(
+                orderData: [
+                    'agency_id' => (int) $ag1->id,
+                    'to_agency_id' => (int) $ag2->id,
+                    'user_id' => $actorUserId,
+                    'order_type_id' => $transferTypeId,
+                    'order_date' => $orderDate,
+                    'created_by' => $createdBy,
+                    'note' => $note3,
+                ],
+                detailData: [
+                    'item_id' => (int) $itemCorn->id,
+                    'quantity' => 40,
+                    'unit_price' => 0,
+                ]
+            );
+        }
     }
 }

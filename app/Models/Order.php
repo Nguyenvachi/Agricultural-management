@@ -58,6 +58,11 @@ class Order extends Model
         return $this->hasMany(OrderDetail::class, 'order_id');
     }
 
+    public function inventoryTransactions()
+    {
+        return $this->hasMany(InventoryTransaction::class, 'order_id');
+    }
+
     /**
      * Đơn gốc (dùng cho RETURN_ORDER).
      */

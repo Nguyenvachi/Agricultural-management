@@ -14,12 +14,16 @@ class PriceListController extends Controller
 {
     public function index()
     {
+        $today = today();
+
         $priceLists = PriceList::query()
             ->with(['agency', 'item', 'priceType'])
+            ->orderByDesc('is_active')
+            ->orderByDesc('effective_from')
             ->orderByDesc('id')
             ->paginate(15);
 
-        return view('price-list.index', compact('priceLists'));
+        return view('price-list.index', compact('priceLists', 'today'));
     }
 
     public function create()
@@ -37,14 +41,15 @@ class PriceListController extends Controller
 
         return redirect()
             ->route('price-lists.show', $priceList)
-            ->with('success', 'Tạo bảng giá thành công.');
+            ->with('success', 'Tao bang gia thanh cong.');
     }
 
     public function show(PriceList $priceList)
     {
+        $today = today();
         $priceList->load(['agency', 'item', 'priceType']);
 
-        return view('price-list.show', compact('priceList'));
+        return view('price-list.show', compact('priceList', 'today'));
     }
 
     public function edit(PriceList $priceList)
@@ -62,18 +67,25 @@ class PriceListController extends Controller
 
         return redirect()
             ->route('price-lists.show', $priceList)
-            ->with('success', 'Cập nhật bảng giá thành công.');
+            ->with('success', 'Cap nhat bang gia thanh cong.');
     }
 
     public function destroy(PriceList $priceList)
     {
-        // DB-first: bảng price_lists không có deleted_at, nên 'xóa' sẽ hiểu là ngừng hiệu lực
+        $effectiveTo = $priceList->effective_to;
+        $today = today();
+
+        if (! $effectiveTo || $effectiveTo->gt($today)) {
+            $effectiveTo = $today;
+        }
+
         $priceList->update([
-            'is_active' => 0,
+            'is_active' => false,
+            'effective_to' => $effectiveTo,
         ]);
 
         return redirect()
             ->route('price-lists.index')
-            ->with('success', 'Ngừng hiệu lực bảng giá thành công.');
+            ->with('success', 'Ngung hieu luc bang gia thanh cong.');
     }
 }

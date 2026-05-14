@@ -22,17 +22,16 @@ class StoreOrderRequest extends FormRequest
             'user_id' => ['required', 'integer', 'exists:users,id'],
             'created_by' => ['required', 'integer', 'exists:users,id'],
             'order_type_id' => ['required', 'integer', 'exists:sys_lookup_values,id'],
-            'order_date'    => ['required', 'date'],
-            'note'          => ['nullable', 'string'],
+            'order_date' => ['required', 'date'],
+            'note' => ['nullable', 'string'],
+            'adjustment_direction' => ['nullable', 'string', 'in:IMPORT,EXPORT'],
 
-            // reference_order_id: bắt buộc khi tạo RETURN_ORDER, chọn từ các đơn COMPLETED
             'reference_order_id' => ['nullable', 'integer', 'exists:orders,id'],
 
-            'item_id'   => ['required', 'integer', 'exists:items,id'],
+            'item_id' => ['required', 'integer', 'exists:items,id'],
             'quantity' => ['required', 'numeric', 'gt:0'],
             'unit_price' => ['required', 'numeric', 'min:0'],
 
-            // Multi-details (optional): dùng để thêm nhiều dòng ngoài dòng detail bắt buộc bên trên.
             'details' => ['nullable', 'array', 'min:1'],
             'details.*.item_id' => ['required_with:details', 'integer', 'exists:items,id'],
             'details.*.quantity' => ['required_with:details', 'numeric', 'gt:0'],
@@ -43,35 +42,74 @@ class StoreOrderRequest extends FormRequest
     public function validatedOrderData(): array
     {
         $data = $this->validated();
+        $authUser = $this->user();
+
+        if (! $authUser) {
+            throw new InvalidArgumentException('Phiên đăng nhập không hợp lệ.');
+        }
+
+        $authUser->loadMissing('role', 'agency');
 
         $orderTypeCode = (string) SysLookupValue::query()
             ->where('id', $data['order_type_id'])
             ->value('code');
 
+        if ($authUser->isAdmin()) {
+            // Admin được tạo tất cả loại đơn.
+        } elseif ($authUser->isAgency()) {
+            if ((int) $data['agency_id'] !== (int) $authUser->agency_id) {
+                throw new InvalidArgumentException('Bạn chỉ được tạo đơn cho đại lý của mình.');
+            }
+
+            if ($orderTypeCode === LookupCode::ORDER_ADJUSTMENT) {
+                throw new InvalidArgumentException('Tài khoản đại lý không được tạo ADJUSTMENT_ORDER.');
+            }
+        } elseif ($authUser->isFarmer()) {
+            if ($orderTypeCode !== LookupCode::ORDER_SALES) {
+                throw new InvalidArgumentException('Tài khoản nông hộ chỉ được tạo SALES_ORDER.');
+            }
+
+            if (! $authUser->agency_id) {
+                throw new InvalidArgumentException('Tài khoản nông hộ chưa được gắn đại lý nên chưa thể tạo đơn.');
+            }
+        } else {
+            throw new InvalidArgumentException('Bạn không có quyền tạo đơn hàng.');
+        }
+
         if ($orderTypeCode === LookupCode::ORDER_INTERNAL_TRANSFER) {
             if (empty($data['to_agency_id'])) {
                 throw new InvalidArgumentException('Thiếu đại lý nhận (to_agency_id).');
             }
+
             if ((int) $data['to_agency_id'] === (int) $data['agency_id']) {
                 throw new InvalidArgumentException('Đại lý chuyển và đại lý nhận phải khác nhau.');
             }
         }
 
-        if ($orderTypeCode === LookupCode::ORDER_RETURN) {
-            if (empty($data['reference_order_id'])) {
-                throw new InvalidArgumentException('RETURN_ORDER cần chọn đơn gốc (reference_order_id).');
-            }
+        if ($orderTypeCode === LookupCode::ORDER_RETURN && empty($data['reference_order_id'])) {
+            throw new InvalidArgumentException('RETURN_ORDER cần chọn đơn gốc (reference_order_id).');
+        }
+
+        if ($orderTypeCode === LookupCode::ORDER_ADJUSTMENT && empty($data['adjustment_direction'])) {
+            throw new InvalidArgumentException('ADJUSTMENT_ORDER cần chọn hướng điều chỉnh kho.');
+        }
+
+        $note = $data['note'] ?? null;
+        if ($orderTypeCode === LookupCode::ORDER_ADJUSTMENT && ! empty($data['adjustment_direction'])) {
+            $prefix = '[ADJUSTMENT:' . $data['adjustment_direction'] . ']';
+            $note = $note ? $prefix . ' ' . $note : $prefix;
         }
 
         return [
-            'agency_id'          => (int) $data['agency_id'],
-            'to_agency_id'       => isset($data['to_agency_id']) && $data['to_agency_id'] ? (int) $data['to_agency_id'] : null,
-            'reference_order_id' => isset($data['reference_order_id']) && $data['reference_order_id'] ? (int) $data['reference_order_id'] : null,
-            'user_id'            => (int) $data['user_id'],
-            'created_by'         => (int) $data['created_by'],
-            'order_type_id'      => (int) $data['order_type_id'],
-            'order_date'         => $data['order_date'],
-            'note'               => $data['note'] ?? null,
+            'agency_id' => (int) $data['agency_id'],
+            'to_agency_id' => ! empty($data['to_agency_id']) ? (int) $data['to_agency_id'] : null,
+            'reference_order_id' => ! empty($data['reference_order_id']) ? (int) $data['reference_order_id'] : null,
+            'user_id' => (int) $data['user_id'],
+            'created_by' => (int) $authUser->id,
+            'order_type_id' => (int) $data['order_type_id'],
+            'order_date' => $data['order_date'],
+            'note' => $note,
+            'adjustment_direction' => $data['adjustment_direction'] ?? null,
         ];
     }
 
@@ -92,18 +130,13 @@ class StoreOrderRequest extends FormRequest
         $data = $this->validated();
 
         $details = $data['details'] ?? [];
-        if (!is_array($details)) {
+        if (! is_array($details)) {
             return [];
         }
 
         $result = [];
         foreach ($details as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-
-            // Defensive: nếu UI gửi row rỗng (do JS), bỏ qua.
-            if (empty($row['item_id'])) {
+            if (! is_array($row) || empty($row['item_id'])) {
                 continue;
             }
 
@@ -115,5 +148,31 @@ class StoreOrderRequest extends FormRequest
         }
 
         return $result;
+    }
+
+    protected function prepareForValidation()
+    {
+        $user = $this->user();
+
+        if (! $user) {
+            return;
+        }
+
+        $user->loadMissing('role');
+
+        $payload = [
+            'created_by' => $user->id,
+        ];
+
+        if (! $user->isAdmin()) {
+            $payload['user_id'] = $user->id;
+            $payload['agency_id'] = $user->agency_id;
+        }
+
+        if (! $this->has('adjustment_direction')) {
+            $payload['adjustment_direction'] = null;
+        }
+
+        $this->merge($payload);
     }
 }

@@ -128,8 +128,8 @@ class SampleMasterDataSeeder extends Seeder
 
         foreach ($allAgencies as $agency) {
             foreach ($allItems as $item) {
-                // Giá thu mua
-                PriceList::query()->updateOrCreate(
+                // Giá thu mua - only create if not exists to avoid overwriting manual prices
+                PriceList::query()->firstOrCreate(
                     [
                         'agency_id' => $agency->id,
                         'item_id' => $item->id,
@@ -143,8 +143,8 @@ class SampleMasterDataSeeder extends Seeder
                     ]
                 );
 
-                // Giá bán
-                PriceList::query()->updateOrCreate(
+                // Giá bán - only create if not exists to avoid overwriting manual prices
+                PriceList::query()->firstOrCreate(
                     [
                         'agency_id' => $agency->id,
                         'item_id' => $item->id,
