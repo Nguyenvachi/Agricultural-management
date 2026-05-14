@@ -79,7 +79,7 @@ class OrderFlowTest extends TestCase
         $item   = $this->makeItem();
         $user   = $this->makeUser($agency);
 
-        $response = $this->post(route('orders.store'), [
+        $response = $this->actingAs($user)->post(route('orders.store'), [
             'agency_id'     => $agency->id,
             'user_id'       => $user->id,
             'created_by'    => $user->id,
@@ -118,7 +118,7 @@ class OrderFlowTest extends TestCase
             'quantity'  => 100,
         ]);
 
-        $response = $this->post(route('orders.store'), [
+        $response = $this->actingAs($user)->post(route('orders.store'), [
             'agency_id'     => $agency->id,
             'user_id'       => $user->id,
             'created_by'    => $user->id,
@@ -155,7 +155,7 @@ class OrderFlowTest extends TestCase
             'quantity'  => 5,
         ]);
 
-        $response = $this->post(route('orders.store'), [
+        $response = $this->actingAs($user)->post(route('orders.store'), [
             'agency_id'     => $agency->id,
             'user_id'       => $user->id,
             'created_by'    => $user->id,
@@ -188,7 +188,7 @@ class OrderFlowTest extends TestCase
         $user   = $this->makeUser($agency);
 
         // Tạo PURCHASE_ORDER → kho tăng lên 50
-        $this->post(route('orders.store'), [
+        $this->actingAs($user)->post(route('orders.store'), [
             'agency_id'     => $agency->id,
             'user_id'       => $user->id,
             'created_by'    => $user->id,
@@ -207,7 +207,7 @@ class OrderFlowTest extends TestCase
         $this->assertNotNull($order, 'Order phải được tạo trước khi cancel.');
 
         // Cancel đơn
-        $response = $this->post(route('orders.cancel', $order));
+        $response = $this->actingAs($user)->post(route('orders.cancel', $order));
         $response->assertRedirect(route('orders.show', $order));
 
         // Kho phải rollback về 0
@@ -239,7 +239,7 @@ class OrderFlowTest extends TestCase
         // Dòng đầu: 10 × 5000 = 50000
         // Dòng bổ sung: 20 × 8000 = 160000
         // Total kỳ vọng: 210000
-        $this->post(route('orders.store'), [
+        $this->actingAs($user)->post(route('orders.store'), [
             'agency_id'     => $agency->id,
             'user_id'       => $user->id,
             'created_by'    => $user->id,
