@@ -20,7 +20,7 @@ class DashboardController extends Controller
         $isAgency = $user->isAgency();
         $agencyId = $user->agency_id;
 
-        // FIX 1: Authorization - FARMER/CUSTOMER không được vào dashboard
+        // Authorization - FARMER/CUSTOMER không được vào dashboard
         if ($user->isFarmer() || $user->isCustomer()) {
             return redirect()->route('orders.index')
                 ->with('warning', 'Bạn không có quyền truy cập dashboard.');
@@ -100,7 +100,7 @@ class DashboardController extends Controller
 
         $lowStockItems = $lowStockItemsQuery->get();
 
-        // Dữ liệu cho biểu đồ: số đơn theo loại order_type (FIX 3: eager loading)
+        // Dữ liệu cho biểu đồ: số đơn theo loại order_type (Eager loading)
         $orderTypeCountsQuery = Order::query()
             ->selectRaw('order_type_id, COUNT(*) as count')
             ->groupBy('order_type_id')
@@ -112,7 +112,7 @@ class DashboardController extends Controller
 
         $orderTypeCounts = $orderTypeCountsQuery->get();
 
-        // Chuyển dữ liệu để vẽ biểu đồ (FIX 4: safe rendering)
+        // Chuyển dữ liệu để vẽ biểu đồ (safe rendering)
         $chartLabels = [];
         $chartData = [];
         $chartColors = ['#198754', '#0d6efd', '#fd7e14', '#dc3545', '#6f42c1'];

@@ -78,7 +78,7 @@ class OrderService
         $statusCode = (string) optional($order->status)->code;
 
         if ($statusCode !== LookupCode::ORDER_PENDING) {
-            throw new InvalidArgumentException('Chi duoc chuyen sang PROCESSING khi don dang o trang thai PENDING.');
+            throw new InvalidArgumentException('Chỉ được chuyển sang PROCESSING khi đơn đang ở trạng thái PENDING.');
         }
 
         $processingStatusId = LookupHelper::getValueId(
@@ -97,7 +97,7 @@ class OrderService
         $statusCode = (string) optional($order->status)->code;
 
         if ($statusCode !== LookupCode::ORDER_PROCESSING) {
-            throw new InvalidArgumentException('Chi duoc hoan thanh don dang o trang thai PROCESSING.');
+            throw new InvalidArgumentException('Chỉ được hoàn thành đơn đang ở trạng thái PROCESSING.');
         }
 
         DB::transaction(function () use ($order) {
@@ -105,7 +105,7 @@ class OrderService
 
             $orderTypeCode = (string) optional($order->orderType)->code;
             if ($orderTypeCode === '') {
-                throw new InvalidArgumentException('Khong xac dinh duoc loai don hang.');
+                throw new InvalidArgumentException('Không xác định được loại đơn hàng.');
             }
 
             foreach ($order->details as $detail) {
@@ -172,7 +172,7 @@ class OrderService
 
         if ($orderTypeCode === LookupCode::ORDER_INTERNAL_TRANSFER) {
             if (! $toAgencyId) {
-                throw new InvalidArgumentException('Thieu dai ly nhan (to_agency_id).');
+                throw new InvalidArgumentException('Thiếu đại lý nhận (to_agency_id).');
             }
 
             $this->inventoryService->transferStock(
@@ -227,10 +227,10 @@ class OrderService
                 return;
             }
 
-            throw new InvalidArgumentException('Huong dieu chinh kho khong hop le.');
+            throw new InvalidArgumentException('Hướng điều chỉnh kho không hợp lệ.');
         }
 
-        throw new InvalidArgumentException('Order type chua duoc ho tro.');
+        throw new InvalidArgumentException('Loại đơn hàng chưa được hỗ trợ.');
     }
 
     public function cancelOrder(Order $order, int $cancelledBy): void
@@ -239,7 +239,7 @@ class OrderService
         $statusCode = (string) optional($order->status)->code;
 
         if ($statusCode === LookupCode::ORDER_CANCELLED) {
-            throw new InvalidArgumentException('Don hang da bi huy truoc do.');
+            throw new InvalidArgumentException('Đơn hàng đã bị hủy trước đó.');
         }
 
         DB::transaction(function () use ($order, $cancelledBy, $statusCode) {
@@ -252,7 +252,7 @@ class OrderService
                 $this->inventoryService->rollbackByOrderId(
                     orderId: $order->id,
                     createdBy: $cancelledBy,
-                    note: 'Huy don ' . $order->order_code
+                    note: 'Hủy đơn ' . $order->order_code
                 );
             }
 
@@ -267,7 +267,7 @@ class OrderService
     private function normalizeDetailsData(array $detailsData): array
     {
         if (count($detailsData) === 0) {
-            throw new InvalidArgumentException('Chi tiet don hang khong duoc rong.');
+            throw new InvalidArgumentException('Chi tiết đơn hàng không được rỗng.');
         }
 
         $normalized = [];
@@ -279,19 +279,19 @@ class OrderService
             $itemId = (int) ($detailData['item_id'] ?? 0);
 
             if ($itemId <= 0) {
-                throw new InvalidArgumentException('Mat hang khong hop le.');
+                throw new InvalidArgumentException('Mặt hàng không hợp lệ.');
             }
 
             if ($quantity <= 0) {
-                throw new InvalidArgumentException('So luong phai > 0.');
+                throw new InvalidArgumentException('Số lượng phải > 0.');
             }
 
             if ($unitPrice < 0) {
-                throw new InvalidArgumentException('Don gia khong hop le.');
+                throw new InvalidArgumentException('Đơn giá không hợp lệ.');
             }
 
             if (in_array($itemId, $itemIds, true)) {
-                throw new InvalidArgumentException('Khong duoc lap mat hang trong cung mot don.');
+                throw new InvalidArgumentException('Không được lặp mặt hàng trong cùng một đơn.');
             }
 
             $itemIds[] = $itemId;
@@ -321,7 +321,7 @@ class OrderService
                 LookupCode::TRANSACTION_IMPORT,
                 LookupCode::TRANSACTION_EXPORT,
             ], true)) {
-                throw new InvalidArgumentException('ADJUSTMENT_ORDER can huong dieu chinh hop le.');
+                throw new InvalidArgumentException('ADJUSTMENT_ORDER cần hướng điều chỉnh hợp lệ.');
             }
         }
     }
@@ -334,7 +334,7 @@ class OrderService
     {
         $referenceOrderId = (int) ($orderData['reference_order_id'] ?? 0);
         if ($referenceOrderId <= 0) {
-            throw new InvalidArgumentException('RETURN_ORDER can chon don goc.');
+            throw new InvalidArgumentException('RETURN_ORDER cần chọn đơn gốc.');
         }
 
         $salesTypeId = LookupHelper::getValueId(LookupCode::TYPE_ORDER_TYPE, LookupCode::ORDER_SALES);
@@ -347,23 +347,23 @@ class OrderService
             ->first();
 
         if (! $referenceOrder) {
-            throw new InvalidArgumentException('Khong tim thay don goc de tra hang.');
+            throw new InvalidArgumentException('Không tìm thấy đơn gốc để trả hàng.');
         }
 
         if ((int) $referenceOrder->agency_id !== (int) $orderData['agency_id']) {
-            throw new InvalidArgumentException('Don tra hang phai thuoc cung dai ly voi don goc.');
+            throw new InvalidArgumentException('Đơn trả hàng phải thuộc cùng đại lý với đơn gốc.');
         }
 
         if ((int) $referenceOrder->order_type_id !== $salesTypeId) {
-            throw new InvalidArgumentException('RETURN_ORDER hien chi ho tro tra hang cho SALES_ORDER da ban.');
+            throw new InvalidArgumentException('RETURN_ORDER hiện nay chỉ hỗ trợ trả hàng cho SALES_ORDER đã bán.');
         }
 
         if ((int) $referenceOrder->status_id !== $completedStatusId) {
-            throw new InvalidArgumentException('Chi duoc tao RETURN_ORDER tu don SALES_ORDER da COMPLETED.');
+            throw new InvalidArgumentException('Chỉ được tạo RETURN_ORDER từ đơn SALES_ORDER đã COMPLETED.');
         }
 
         if ((int) $referenceOrder->status_id === $cancelledStatusId) {
-            throw new InvalidArgumentException('Khong the tra hang cho don goc da bi huy.');
+            throw new InvalidArgumentException('Không thể trả hàng cho đơn gốc đã bị hủy.');
         }
 
         $originalQuantities = [];
@@ -379,7 +379,7 @@ class OrderService
             $originalQty = $originalQuantities[$itemId] ?? null;
 
             if ($originalQty === null) {
-                throw new InvalidArgumentException('Mat hang tra khong ton tai trong don goc.');
+                throw new InvalidArgumentException('Mặt hàng trả không tồn tại trong đơn gốc.');
             }
 
             $returnedQty = (float) OrderDetail::query()
@@ -393,7 +393,7 @@ class OrderService
 
             $remainingQty = $originalQty - $returnedQty;
             if ($requestedQty > $remainingQty) {
-                throw new InvalidArgumentException('So luong tra vuot qua so luong con co the tra cua don goc.');
+                throw new InvalidArgumentException('Số lượng trả vượt quá số lượng còn có thể trả của đơn gốc.');
             }
         }
     }

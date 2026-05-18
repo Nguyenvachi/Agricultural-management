@@ -49,7 +49,7 @@ class StorePriceListRequest extends FormRequest
             if ($this->hasOverlappingActiveRange()) {
                 $validator->errors()->add(
                     'effective_from',
-                    'Khoang hieu luc bi chong lan voi mot bang gia dang hoat dong cung dai ly, mat hang va loai gia.'
+                    'Khoảng hiệu lực bị trùng lặp với một bảng giá đang hoạt động cùng đại lý, mặt hàng và loại giá.'
                 );
             }
         });
